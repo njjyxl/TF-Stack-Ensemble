@@ -74,7 +74,6 @@ The system generates several outputs:
 1. Model performance metrics (accuracy, precision, recall, F1-score)
 2. Performance comparison plots (saved as PDF)
 3. ROC curves for all models (saved as PDF)
-4. Detailed cross-validation results
 
 ## Customization
 
