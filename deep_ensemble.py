@@ -17,14 +17,14 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 class BaseModelOptimizer:
-    """用于优化和评估基础模型的类"""
+    """For optimizing and evaluating base models"""
     def __init__(self, cv_folds=5):
         self.cv_folds = cv_folds
         self.best_models = {}
         self.param_grids = self._define_param_grids()
     
     def _define_param_grids(self):
-        """定义每个基础模型的参数网格"""
+        """Define the parametric grid for each base model"""
         return {
             'rf': {
                 'n_estimators': [100, 200, 300],
@@ -52,8 +52,8 @@ class BaseModelOptimizer:
         }
     
     def optimize_base_models(self, X, y):
-        """优化所有基础模型"""
-        # 确保X和y都是numpy数组
+        """Optimize all base models"""
+        # Make sure x and y are numpy arrays
         if isinstance(X, pd.DataFrame):
             X = X.values
         if isinstance(y, pd.Series):
@@ -67,7 +67,7 @@ class BaseModelOptimizer:
         }
         
         for name, model in base_models.items():
-            print(f"\n优化 {name} 模型...")
+            print(f"\noptimize {name} model...")
             grid_search = GridSearchCV(
                 estimator=model,
                 param_grid=self.param_grids[name],
@@ -79,15 +79,15 @@ class BaseModelOptimizer:
             grid_search.fit(X, y)
             
             self.best_models[name] = grid_search.best_estimator_
-            print(f"{name} 最佳参数:", grid_search.best_params_)
-            print(f"{name} 最佳交叉验证分数:", grid_search.best_score_)
+            print(f"{name} optimal parameter:", grid_search.best_params_)
+            print(f"{name} Best cross-validation score:", grid_search.best_score_)
             
-            # 计算并打印详细的交叉验证指标
+            # Calculate and print detailed cross-validation metrics
             self._evaluate_model(name, self.best_models[name], X, y)
     
     def _evaluate_model(self, name, model, X, y):
-        """使用交叉验证评估单个模型的性能"""
-        # 确保X和y都是numpy数组
+        """Evaluating the performance of individual models using cross-validation"""
+        # Make sure x and y are numpy arrays
         if isinstance(X, pd.DataFrame):
             X = X.values
         if isinstance(y, pd.Series):
@@ -116,15 +116,15 @@ class BaseModelOptimizer:
             metrics['recall'].append(recall_score(y_val_fold, y_pred, average='weighted'))
             metrics['f1'].append(f1_score(y_val_fold, y_pred, average='weighted'))
         
-        print(f"\n{name} 交叉验证结果:")
+        print(f"\n{name} Cross-validation results:")
         for metric, scores in metrics.items():
             print(f"{metric}:")
             print(f"  Mean: {np.mean(scores):.4f}")
             print(f"  Std: {np.std(scores):.4f}")
     
     def plot_model_comparison(self, X, y):
-        """绘制所有模型的性能比较"""
-        # 确保X和y都是numpy数组
+        """Plotting performance comparisons for all models"""
+        # Make sure x and y are numpy arrays
         if isinstance(X, pd.DataFrame):
             X = X.values
         if isinstance(y, pd.Series):
@@ -159,7 +159,7 @@ class BaseModelOptimizer:
                 np.mean(f1s)
             ]
         
-        # 创建性能比较图
+        # Creating Performance Comparison Charts
         plt.figure(figsize=(12, 6))
         x = np.arange(len(metrics))
         width = 0.15
@@ -176,8 +176,7 @@ class BaseModelOptimizer:
         plt.close()
     
     def plot_roc_curves(self, X, y):
-        """为所有模型绘制ROC曲线"""
-        # 确保X和y都是numpy数组
+        """Plot ROC curves for all models""
         if isinstance(X, pd.DataFrame):
             X = X.values
         if isinstance(y, pd.Series):
@@ -188,7 +187,7 @@ class BaseModelOptimizer:
         for name, model in self.best_models.items():
             y_scores = np.zeros((len(y), len(np.unique(y))))
             
-            # 使用交叉验证获取预测概率
+            # Using cross-validation to obtain predicted probabilities
             skf = StratifiedKFold(n_splits=self.cv_folds, shuffle=True, random_state=42)
             for train_idx, val_idx in skf.split(X, y):
                 X_val = X[val_idx]
@@ -197,7 +196,7 @@ class BaseModelOptimizer:
                 model.fit(X[train_idx], y[train_idx])
                 y_scores[val_idx] = model.predict_proba(X_val)
             
-            # 计算每个类的ROC曲线
+            # Calculate the ROC curve for each class
             n_classes = len(np.unique(y))
             for i in range(n_classes):
                 fpr, tpr, _ = roc_curve((y == i).astype(int), y_scores[:, i])
@@ -316,7 +315,7 @@ class TransformerStackingClassifier:
         return np.argmax(self.meta_learner.predict(meta_features), axis=1)
 
 def main():
-    # 加载和预处理数据
+    # Load and preprocess data
     df = pd.read_csv('data/expr_matrix.csv')
     df_1 = df.drop('Unnamed: 0', axis=1)
     
@@ -326,29 +325,29 @@ def main():
     X = df_1.drop('Cancer_tumor', axis=1)
     y = df_1['Cancer_tumor']
     
-    # 数据分割
+    # data split
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
     
-    # 特征缩放
+    # Feature Scaling
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    # 优化和评估基础模型
+    # Optimization and evaluation of base models
     base_optimizer = BaseModelOptimizer()
     base_optimizer.optimize_base_models(X_train_scaled, y_train)
     
-    # 绘制模型比较图
-    print("\n绘制模型性能比较...")
+    # Plotting model comparisons
+    print("\nPlotting model comparisons...")
     base_optimizer.plot_model_comparison(X_train_scaled, y_train)
     
-    # 绘制ROC曲线
-    print("\n绘制ROC曲线...")
+    # Plotting the ROC curve
+    print("\nPlotting the ROC curve...")
     base_optimizer.plot_roc_curves(X_train_scaled, y_train)
     
-    # 使用优化后的基础模型创建堆叠分类器
+    # Creating a stacked classifier using an optimized base model
     optimized_base_models = [
         (name, model) for name, model in base_optimizer.best_models.items()
     ]
@@ -358,17 +357,17 @@ def main():
         num_classes=len(np.unique(y))
     )
     
-    # 训练堆叠分类器
-    print("\n训练堆叠分类器...")
+    # Training a Stacked Classifier
+    print("\nTraining a Stacked Classifier...")
     stacking_clf.fit(X_train_scaled, y_train)
     
-    # 评估最终模型
+    # Evaluation of the final model
     y_pred = stacking_clf.predict(X_test_scaled)
-    print("\n最终模型评估结果:")
-    print(f"准确率: {accuracy_score(y_test, y_pred):.4f}")
-    print(f"精确率: {precision_score(y_test, y_pred, average='weighted'):.4f}")
-    print(f"召回率: {recall_score(y_test, y_pred, average='weighted'):.4f}")
-    print(f"F1分数: {f1_score(y_test, y_pred, average='weighted'):.4f}")
+    print("\nFinal model evaluation results:")
+    print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")
+    print(f"Precision: {precision_score(y_test, y_pred, average='weighted'):.4f}")
+    print(f"Recall_score: {recall_score(y_test, y_pred, average='weighted'):.4f}")
+    print(f"F1_score: {f1_score(y_test, y_pred, average='weighted'):.4f}")
 
 if __name__ == "__main__":
     main()
